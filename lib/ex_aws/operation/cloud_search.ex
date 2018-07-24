@@ -11,9 +11,12 @@ defmodule ExAws.Operation.CloudSearch do
 
   The `before_request` callback will be called before the host configuration is
   finalized or the CloudSearch API version is prepended to the path.
+
+  Note: ExAws.CloudSearch only supports version 2013-01-01.
   """
 
   defstruct stream_builder: nil,
+            service: :cloudsearch,
             http_method: :post,
             parser: nil,
             path: "/",
@@ -21,13 +24,12 @@ defmodule ExAws.Operation.CloudSearch do
             params: %{},
             headers: [],
             before_request: nil,
-            domain: nil,
             api_version: "2013-01-01",
-            request_type: :search,
-            service: :cloudsearch
+            request_type: :search
 
   @type t :: %__MODULE__{
           stream_builder: nil | (ExAws.Config.t() -> ExAws.Config.t()),
+          service: :cloudsearch,
           http_method: :get | :post | :put | :patch | :head | :delete,
           parser: nil | fun(),
           path: String.t(),
@@ -35,10 +37,8 @@ defmodule ExAws.Operation.CloudSearch do
           params: map,
           headers: list({String.t(), String.t()}),
           before_request: nil | (t, ExAws.Config.t() -> t),
-          domain: String.t(),
           api_version: String.t(),
-          request_type: :config | :doc | :search,
-          service: :cloudsearch
+          request_type: :config | :doc | :search
         }
 
   @spec new(Enum.t()) :: t
@@ -53,63 +53,105 @@ defmodule ExAws.Operation.CloudSearch do
 
     @spec perform(CloudSearch.t(), Config.t()) :: response_t
     def perform(operation, config) do
-      operation = handle_callbacks(operation, config)
-
-      {operation, config} = handle_host_config(operation, config)
-
-      {operation, data, headers} = prep_operation(operation)
+      operation = handle_before(operation, config)
+      {operation, config} = configure_host(operation, config)
+      {operation, data, headers} = prepare_request(operation, config)
 
       url = ExAws.Request.Url.build(operation, config)
 
       headers = [{"x-amz-content-sha256", ""} | headers]
 
-      ExAws.Request.request(
-        operation.http_method,
-        url,
-        data,
-        headers,
-        config,
-        :cloudsearch
-      )
-      |> parse(config)
+      operation.http_method
+      |> ExAws.Request.request(url, data, headers, config, :cloudsearch)
+      |> parse_response(config)
     end
 
     @spec stream!(CloudSearch.t(), Config.t()) :: no_return
     def stream!(_, _), do: raise(ArgumentError, "This operation does not support streaming!")
 
-    @spec handle_callbacks(CloudSearch.t(), Config.t()) :: CloudSearch.t()
-    defp handle_callbacks(%{before_request: nil} = op, _), do: op
+    @spec handle_before(CloudSearch.t(), Config.t()) :: CloudSearch.t()
+    defp handle_before(%{before_request: nil} = op, _), do: op
 
-    defp handle_callbacks(%{before_request: callback} = op, config), do: callback.(op, config)
+    defp handle_before(%{before_request: callback} = op, config), do: callback.(op, config)
 
-    @spec handle_host_config(CloudSearch.t(), Config.t()) :: {CloudSearch.t(), Config.t()}
-    defp handle_host_config(
-           %{api_version: version, path: path, request_type: type, domain: domain} = operation,
-           %{region: region} = config
+    @spec configure_host(CloudSearch.t(), Config.t()) :: {CloudSearch.t(), Config.t()}
+    defp configure_host(
+           %{api_version: version, path: path, request_type: type} = operation,
+           %{region: region, search_domain: domain} = config
          ) do
+      if version != "2013-01-01" do
+        raise(ExAws.Error, "Unsupported CloudSearch API version #{version}")
+      end
+
       {
         %{operation | path: "/#{version}/#{path}", service: :cloudsearch},
         %{config | host: "#{type}-#{domain}.#{region}.cloudsearch.amazonaws.com"}
       }
     end
 
-    @spec prep_operation(CloudSearch.t()) :: {CloudSearch.t(), map | String.t(), list({String.t(), String.t()})}
-    defp prep_operation(%{request_type: :search, http_method: :post} = op) do
-      data = URI.encode_query(op.params)
+    @spec prepare_request(CloudSearch.t(), Config.t()) ::
+            {CloudSearch.t(), map | String.t(), list({String.t(), String.t()})}
+
+    defp prepare_request(%{request_type: :search, http_method: :post} = op, config) do
+      data =
+        op
+        |> parse_search_query(config)
+        |> URI.encode_query()
+
       headers = [{"content-type", "application/x-www-form-urlencoded"} | op.headers]
       {Map.put(op, :params, %{}), data, headers}
     end
 
-    defp prep_operation(%{data: data, headers: headers} = op), do: {op, data, headers}
+    defp prepare_request(%{request_type: :search} = op, config) do
+      {Map.put(op, :params, parse_search_query(op, config)), %{}, op.headers}
+    end
 
-    @spec parse({:ok, %{body: String.t()}} | {:error, any}, Config.t()) ::
+    defp prepare_request(%{data: data, headers: headers} = op, _config), do: {op, data, headers}
+
+    @spec parse_response({:ok, %{body: String.t()}} | {:error, any}, Config.t()) ::
             {:ok, map} | {:error, any} | no_return
-    defp parse({:error, _} = result, _), do: result
+    defp parse_response({:error, _} = result, _), do: result
 
-    defp parse({:ok, %{body: ""}}, _), do: {:ok, %{}}
+    defp parse_response({:ok, %{body: ""}}, _), do: {:ok, %{}}
 
-    defp parse({:ok, %{body: body}}, config) do
+    defp parse_response({:ok, %{body: body}}, config) do
       {:ok, config[:json_codec].decode!(body)}
+    end
+
+    @spec parse_search_query(map, Config.t()) :: map
+    defp parse_search_query(%{params: %{} = params}, config) do
+      {query, parser} =
+        params
+        |> Map.get_lazy("q", fn -> Map.fetch!(params, :q) end)
+        |> ExAws.CloudSearch.QueryParser.parse()
+
+      {fq, _} =
+        params
+        |> Map.get("fq", Map.get(params, :fq))
+        |> ExAws.CloudSearch.QueryParser.parse()
+
+      params
+      |> put_param(:"q.parser", parser)
+      |> put_param(:fq, fq)
+      |> put_param(:q, query)
+      |> Enum.reduce(%{}, &convert_json_params(config, &1, &2))
+    end
+
+    @spec convert_json_params(Config.t(), {String.t() | atom, String.t() | {:json, map}}, map) ::
+            map
+    defp convert_json_params(config, {key, {:json, value}}, params) do
+      Map.put(params, key, config[:json_codec].encode!(value))
+    end
+
+    defp convert_json_params(_config, {key, value}, params), do: Map.put(params, key, value)
+
+    @spec put_param(map, atom, any) :: map
+    defp put_param(params, _, nil), do: params
+
+    defp put_param(params, name, value) when is_atom(name) do
+      params
+      |> Map.put(to_string(name), value)
+      |> Map.delete(name)
     end
   end
 end

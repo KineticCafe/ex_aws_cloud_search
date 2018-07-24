@@ -1,8 +1,8 @@
 # ExAws.CloudSearch
 
-[![Build Status][build_status_svg]][build status]
+[![Build Status][build status svg]][build status]
 
-An [ex_aws][] service module for AWS [CloudSearch][].
+An [ex\_aws][] service module for AWS [CloudSearch][].
 
 ## Installation
 
@@ -34,13 +34,21 @@ During search construction, if a `CSQuery.Expression` is provided as the query,
 it will use `CSQuery.to_query/1` to produce the query string. (If `CSQuery` is
 not loaded, an error will be thrown.)
 
+## Planned Features
+
+- [x] Search - v0.1.0
+- [ ] Suggest
+- [ ] Document management (add, update, delete)
+- [ ] Configuration
+- [ ] Tests (I know, I know)
+
 ## Community and Contributing
 
 We welcome your contributions, as described in [Contributing.md][]. Like all
 Kinetic Cafe [open source projects][], is under the Kinetic Cafe Open Source
 [Code of Conduct][kccoc].
 
-[ex_aws]: https://github.com/ex-aws
+[ex\_aws]: https://github.com/ex-aws
 [HexDocs.pm]: https://hexdocs.pm/ex_aws_cloud_search
 [build status svg]: https://travis-ci.org/KineticCafe/csquery.svg?branch=master
 [build status]: https://travis-ci.org/KineticCafe/csquery

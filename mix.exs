@@ -17,7 +17,7 @@ defmodule ExAws.CloudSearch.Mixfile do
 
   @package [
     files: ["lib", "mix.exs", "README.md", "Contributing.md", "Licence.md", ".formatter.exs"],
-    licences: ["MIT"],
+    licenses: ["MIT"],
     links: %{GitHub: @url}
   ]
 
