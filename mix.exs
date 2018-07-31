@@ -1,7 +1,7 @@
 defmodule ExAws.CloudSearch.Mixfile do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @service "cloud_search"
   @url "https://github.com/KineticCafe/ex_aws_#{@service}"
   @name __MODULE__ |> Module.split() |> Enum.take(2) |> Enum.join(".")

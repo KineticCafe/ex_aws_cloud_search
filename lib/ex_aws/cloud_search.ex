@@ -538,7 +538,7 @@ defmodule ExAws.CloudSearch do
   [dismax]: https://lucene.apache.org/solr/guide/6_6/the-dismax-query-parser.html
   """
   @spec search(search_term, search_options) :: Operation.t() | no_return
-  def search(term, options) do
+  def search(term, options \\ []) do
     %Operation{
       path: "/search",
       params: build_search_params(term, options),
