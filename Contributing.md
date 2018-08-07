@@ -30,8 +30,8 @@ Here's the most direct way to get your work merged into the project:
 *   Make sure your code is formatted with `mix format`.
 *   If necessary, rebase your commits into logical chunks, without errors.
 *   Push the branch up (`git push origin my_awesome_feature`).
-*   Create a pull request against KineticCafe/ex_aws_cloud_search and describe your change
-    does and the why you think it should be merged.
+*   Create a pull request against `KineticCafe/ex_aws_cloud_search` and
+    describe your change does and the why you think it should be merged.
 
 ### Contributors
 

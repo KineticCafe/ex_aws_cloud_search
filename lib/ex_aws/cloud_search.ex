@@ -38,13 +38,13 @@ defmodule ExAws.CloudSearch do
           | String.t()
           | [
               {:format, :text | :html},
-              {:max_phrases, non_neg_integer},
+              {:max_phrases, pos_integer},
               {:pre_tag, String.t()},
               {:post_tag, String.t()}
             ]
           | %{
               optional(:format) => :text | :html,
-              optional(:max_phrases) => non_neg_integer,
+              optional(:max_phrases) => pos_integer,
               optional(:pre_tag) => String.t(),
               optional(:post_tag) => String.t()
             }
@@ -61,8 +61,8 @@ defmodule ExAws.CloudSearch do
             {:fields, list(String.t())},
             {:operators, list(String.t())},
             {:phraseFields, list(String.t())},
-            {:phraseSlop, non_neg_integer},
-            {:explicitPhraseSlop, non_neg_integer},
+            {:phraseSlop, pos_integer},
+            {:explicitPhraseSlop, pos_integer},
             {:tieBreaker, float}
           ]
           | %{
@@ -70,8 +70,8 @@ defmodule ExAws.CloudSearch do
               optional(:fields) => list(String.t()),
               optional(:operators) => list(String.t()),
               optional(:phraseFields) => list(String.t()),
-              optional(:phraseSlop) => non_neg_integer,
-              optional(:explicitPhraseSlop) => non_neg_integer,
+              optional(:phraseSlop) => pos_integer,
+              optional(:explicitPhraseSlop) => pos_integer,
               optional(:tieBreaker) => float
             }
 
@@ -90,8 +90,8 @@ defmodule ExAws.CloudSearch do
           {:return, String.t() | list(String.t())},
           {:size, non_neg_integer},
           {:sort, list(String.t() | {String.t(), :asc | :desc})},
-          {:start, non_neg_integer},
-          {:page, non_neg_integer}
+          {:start, pos_integer},
+          {:page, pos_integer}
         ]
   @typedoc "Search terms."
   @type search_term :: String.t() | struct | map
@@ -542,6 +542,19 @@ defmodule ExAws.CloudSearch do
     %Operation{
       path: "/search",
       params: build_search_params(term, options),
+      request_type: :search
+    }
+  end
+
+  @doc """
+  Performs a suggestion search for `term` using the named `suggester`. If there
+  are no suggesters for the search domain, this will fail.
+  """
+  @spec suggest(String.t(), String.t(), pos_integer) :: Operation.t()
+  def suggest(term, suggester, size \\ 10) do
+    %Operation{
+      path: "/suggest",
+      params: %{"q" => term, "suggester" => suggester, "size" => size},
       request_type: :search
     }
   end

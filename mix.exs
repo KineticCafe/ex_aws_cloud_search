@@ -1,14 +1,14 @@
 defmodule ExAws.CloudSearch.Mixfile do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.2.0"
   @service "cloud_search"
   @url "https://github.com/KineticCafe/ex_aws_#{@service}"
   @name __MODULE__ |> Module.split() |> Enum.take(2) |> Enum.join(".")
 
   @docs [
     main: "readme",
-    extras: ["README.md", "Contributing.md", "Licence.md"],
+    extras: ~w(README.md Contributing.md Licence.md Changelog.md),
     source_ref: "v#{@version}",
     source_url: @url
   ]
@@ -53,6 +53,7 @@ defmodule ExAws.CloudSearch.Mixfile do
       {:poison, ">= 1.2.0", optional: true},
       {:jsx, "~> 2.8", optional: true},
       {:csquery, "~> 1.0", optional: true},
+      {:configparser_ex, "~> 2.0", optional: true},
       {:credo, "~> 0.8", only: :dev, runtime: false},
       {:dialyxir, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.14", only: :dev, runtime: false},

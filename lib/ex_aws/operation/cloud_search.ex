@@ -59,7 +59,7 @@ defmodule ExAws.Operation.CloudSearch do
 
       url = ExAws.Request.Url.build(operation, config)
 
-      headers = [{"x-amz-content-sha256", ""} | headers]
+      headers = [{"accept", "application/json"}, {"x-amz-content-sha256", ""} | headers]
 
       operation.http_method
       |> ExAws.Request.request(url, data, headers, config, :cloudsearch)
@@ -76,12 +76,18 @@ defmodule ExAws.Operation.CloudSearch do
 
     @spec configure_host(CloudSearch.t(), Config.t()) :: {CloudSearch.t(), Config.t()}
     defp configure_host(
+           %{api_version: version, request_type: :config} = operation,
+           %{region: region} = config
+         ) do
+      verify_version(version)
+      {operation, %{config | host: "cloudsearch.#{region}.amazonaws.com"}}
+    end
+
+    defp configure_host(
            %{api_version: version, path: path, request_type: type} = operation,
            %{region: region, search_domain: domain} = config
          ) do
-      if version != "2013-01-01" do
-        raise(ExAws.Error, "Unsupported CloudSearch API version #{version}")
-      end
+      verify_version(version)
 
       {
         %{operation | path: "/#{version}/#{path}", service: :cloudsearch},
@@ -104,6 +110,16 @@ defmodule ExAws.Operation.CloudSearch do
 
     defp prepare_request(%{request_type: :search} = op, config) do
       {Map.put(op, :params, parse_search_query(op, config)), %{}, op.headers}
+    end
+
+    defp prepare_request(%{data: data, headers: headers, request_type: :doc} = op, _config) do
+      {op, data, [{"content-type", "application/json"} | headers]}
+    end
+
+    defp prepare_request(%{request_type: :config, http_method: :post} = op, _config) do
+      data = URI.encode_query(op.params)
+      headers = [{"content-type", "application/x-www-form-urlencoded"} | op.headers]
+      {Map.put(op, :params, %{}), data, headers}
     end
 
     defp prepare_request(%{data: data, headers: headers} = op, _config), do: {op, data, headers}
@@ -153,5 +169,10 @@ defmodule ExAws.Operation.CloudSearch do
       |> Map.put(to_string(name), value)
       |> Map.delete(name)
     end
+
+    defp verify_version("2013-01-01"), do: nil
+
+    defp verify_version(version),
+      do: raise(ExAws.Error, "Unsupported CloudSearch API version #{version}")
   end
 end
