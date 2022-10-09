@@ -611,7 +611,7 @@ defmodule ExAws.CloudSearch do
     [{"q.options", qoptions} | params]
   end
 
-  defp build_search_options({name, qparser}, params) when name in ~w(parser qparser) do
+  defp build_search_options({name, qparser}, params) when name in [:parser, :qparser] do
     [{"q.parser", qparser} | params]
   end
 
