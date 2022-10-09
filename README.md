@@ -60,13 +60,13 @@ not loaded, an error will be thrown.)
 
 ## Planned Features
 
-- [x] Search - v0.1.0
-- [x] Suggest - v0.2.0
-- [x] Document management (add/update, delete) - v0.2.0
-- [x] Configuration - v0.2.0
+- [x] Search - 0.1.0
+- [x] Suggest - 0.2.0
+- [x] Document management (add, update, delete) - 0.2.0
+- [x] Configuration - 0.2.0
 - [ ] Improved configuration hygiene by providing more helper structs and
-  functions.
-- [ ] Tests (I know, I know) - v1.0.0
+      functions.
+- [ ] Tests - 1.0.0
 
 ## Community and Contributing
 
@@ -75,13 +75,12 @@ Kinetic Cafe [open source projects][], is under the Kinetic Cafe Open Source
 [Code of Conduct][kccoc].
 
 [ex\_aws]: https://github.com/ex-aws
-[HexDocs.pm]: https://hexdocs.pm/ex_aws_cloud_search
+[hexdocs.pm]: https://hexdocs.pm/ex_aws_cloud_search
 [build status svg]: https://travis-ci.org/KineticCafe/csquery.svg?branch=master
 [build status]: https://travis-ci.org/KineticCafe/csquery
-[Hex.pm]: https://hex.pm
-[Contributing.md]: Contributing.md
+[contributing.md]: Contributing.md
 [open source projects]: https://github.com/KineticCafe
 [kccoc]: https://github.com/KineticCafe/code-of-conduct
-[CloudSearch]: https://docs.aws.amazon.com/cloudsearch/
+[cloudsearch]: https://docs.aws.amazon.com/cloudsearch/
 [sss]: https://docs.aws.amazon.com/cloudsearch/latest/developerguide/search-api.html#structured-search-syntax
 [csquery]: https://github.com/KineticCafe/csquery

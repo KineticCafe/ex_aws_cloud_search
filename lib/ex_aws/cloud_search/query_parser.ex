@@ -11,19 +11,26 @@ defmodule ExAws.CloudSearch.QueryParser do
   that value will be returned with the query; otherwise the query mode will be
   `nil`, indicating that the parser cannot determine the type of query.
   """
-  @spec parse(nil | String.t() | struct) :: {String.t(), query_mode} | no_return
+  @spec parse(nil | String.t() | struct) :: {String.t(), query_mode}
   def parse(query)
 
-  def parse(nil), do: {nil, nil}
-
-  def parse(query) when is_binary(query), do: {query, nil}
-
-  if Code.ensure_loaded?(CSQuery.Expression) do
-    def parse(%CSQuery.Expression{} = query),
-      do: {CSQuery.Expression.to_query(query), :structured}
+  def parse(nil) do
+    {nil, nil}
   end
 
-  def parse(%mod{}) when is_atom(mod), do: missing_query_parser(mod)
+  def parse(query) when is_binary(query) do
+    {query, nil}
+  end
+
+  if Code.ensure_loaded?(CSQuery.Expression) do
+    def parse(%CSQuery.Expression{} = query) do
+      {CSQuery.Expression.to_query(query), :structured}
+    end
+  end
+
+  def parse(%mod{}) when is_atom(mod) do
+    missing_query_parser(mod)
+  end
 
   defp missing_query_parser(type) do
     raise ExAws.Error, "Missing CloudSearch query parser for type #{type}. Please see docs."

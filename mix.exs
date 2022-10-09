@@ -1,27 +1,13 @@
 defmodule ExAws.CloudSearch.Mixfile do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.3.0"
   @service "cloud_search"
   @url "https://github.com/KineticCafe/ex_aws_#{@service}"
-  @name __MODULE__ |> Module.split() |> Enum.take(2) |> Enum.join(".")
-
-  @docs [
-    main: "readme",
-    extras: ~w(README.md Contributing.md Licence.md Changelog.md),
-    source_ref: "v#{@version}",
-    source_url: @url
-  ]
-
-  @description "#{@name} service package"
-
-  @package [
-    files: ["lib", "mix.exs", "README.md", "Contributing.md", "Licence.md", ".formatter.exs"],
-    licenses: ["MIT"],
-    links: %{GitHub: @url}
-  ]
-
-  # ------------------------------------------------------------
+  @name __MODULE__
+        |> Module.split()
+        |> Enum.take(2)
+        |> Enum.join(".")
 
   def project do
     [
@@ -32,43 +18,50 @@ defmodule ExAws.CloudSearch.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       source_url: @url,
-      docs: @docs,
-      description: @description,
-      package: @package,
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.semaphore": :test,
-        "coveralls.html": :test
+      docs: docs(),
+      description: "#{@name} service package",
+      package: [
+        files: ["lib", "mix.exs", "README.md", "Contributing.md", "Licence.md", ".formatter.exs"],
+        licenses: ["MIT"],
+        links: %{GitHub: @url}
+      ],
+      dialyzer: [
+        plt_add_apps: [:csquery]
       ]
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
+  def docs do
+    [
+      main: "readme",
+      extras: ~w(README.md Contributing.md Licence.md Changelog.md),
+      source_ref: "v#{@version}",
+      source_url: @url
+    ]
+  end
+
+  defp elixirc_paths(:test) do
+    ["lib", "test/support"]
+  end
+
+  defp elixirc_paths(_) do
+    ["lib"]
+  end
 
   defp deps() do
     [
-      {:poison, ">= 1.2.0", optional: true},
-      {:jsx, "~> 2.8", optional: true},
+      ex_aws(),
       {:csquery, "~> 1.0", optional: true},
-      {:configparser_ex, "~> 2.0", optional: true},
-      {:credo, "~> 0.8", only: :dev, runtime: false},
-      {:dialyxir, "~> 0.5", only: :dev, runtime: false},
-      {:ex_doc, "~> 0.14", only: :dev, runtime: false},
-      {:inch_ex, "~> 0.5", only: :dev, runtime: false},
-      {:hackney, ">= 0.0.0", only: [:dev, :test]},
-      {:bypass, "~> 0.8", only: :test},
-      {:excoveralls, "~> 0.8", only: :test, runtime: false},
-      ex_aws()
+      {:credo, "~> 1.0", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.0", only: :dev, runtime: false},
+      {:hackney, ">= 0.0.0", only: :test}
     ]
   end
 
   defp ex_aws() do
-    case System.get_env("AWS") do
-      "LOCAL" -> {:ex_aws, path: "../ex_aws"}
-      _ -> {:ex_aws, "~> 2.0"}
+    case System.get_env("EX_AWS_PATH") do
+      nil -> {:ex_aws, "~> 2.4"}
+      path -> {:ex_aws, path: "../ex_aws"}
     end
   end
 end

@@ -169,13 +169,21 @@ defmodule ExAws.CloudSearch.Config do
     |> Enum.into(%{})
   end
 
-  defp empty?({_, nil}), do: true
+  defp empty?({_, nil}) do
+    true
+  end
 
-  defp empty?({_, []}), do: true
+  defp empty?({_, []}) do
+    true
+  end
 
-  defp empty?({_, ""}), do: true
+  defp empty?({_, ""}) do
+    true
+  end
 
-  defp empty?(_), do: false
+  defp empty?(_) do
+    false
+  end
 
   defp post!(list) do
     list
@@ -183,7 +191,9 @@ defmodule ExAws.CloudSearch.Config do
     |> Keyword.put(:http_method, :post)
   end
 
-  defp deployed?(list), do: Keyword.get(list, :deployed)
+  defp deployed?(list) do
+    Keyword.get(list, :deployed)
+  end
 
   defp names(base, list) do
     list
