@@ -1,6 +1,12 @@
 defmodule ExAws.CloudSearch.IndexField do
+  @moduledoc """
+  An index field definition for CloudSearch.
+  """
+
   defmodule Options do
-    @typedoc """
+    @moduledoc """
+    Options for a CloudSearch index field.
+
     - `scheme`: The name of an analysis scheme. Used only for fields of type
       `text` or `text-array`.
     - `default`: The value to use if not specified.
@@ -35,6 +41,9 @@ defmodule ExAws.CloudSearch.IndexField do
     ]
   end
 
+  @typedoc """
+  Permitted CloudSearch index field types.
+  """
   @type types ::
           :date
           | :double

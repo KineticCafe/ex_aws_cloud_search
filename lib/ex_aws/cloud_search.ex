@@ -537,7 +537,7 @@ defmodule ExAws.CloudSearch do
   [lucene]: https://lucene.apache.org/solr/guide/6_6/the-standard-query-parser.html
   [dismax]: https://lucene.apache.org/solr/guide/6_6/the-dismax-query-parser.html
   """
-  @spec search(search_term, search_options) :: Operation.t() | no_return
+  @spec search(search_term, search_options) :: Operation.t()
   def search(term, options \\ []) do
     %Operation{
       path: "/search",
@@ -559,7 +559,6 @@ defmodule ExAws.CloudSearch do
     }
   end
 
-  @spec build_search_params(search_term, search_options) :: map | no_return
   defp build_search_params(term, options) do
     options
     |> Enum.reduce([{"q", term}], &build_search_options/2)
@@ -580,8 +579,9 @@ defmodule ExAws.CloudSearch do
     end
   end
 
-  @spec build_search_params(search_options, list) :: list | no_return
-  defp build_search_options({:cursor, cursor}, params), do: [{"cursor", cursor} | params]
+  defp build_search_options({:cursor, cursor}, params) do
+    [{"cursor", cursor} | params]
+  end
 
   defp build_search_options({:expr, expressions}, params) do
     Enum.reduce(expressions, params, fn {name, expr}, params ->
@@ -593,7 +593,9 @@ defmodule ExAws.CloudSearch do
     Enum.reduce(facets, params, &build_named_json_option("facet", &1, &2))
   end
 
-  defp build_search_options({:fq, fq}, params), do: [{"fq", fq} | params]
+  defp build_search_options({:fq, fq}, params) do
+    [{"fq", fq} | params]
+  end
 
   defp build_search_options({:highlight, highlights}, params) do
     Enum.reduce(highlights, params, &build_named_json_option("highlight", &1, &2))
@@ -629,15 +631,14 @@ defmodule ExAws.CloudSearch do
     [{"return", fields} | params]
   end
 
-  defp build_search_options({:size, size}, params), do: [{"size", to_integer(size)} | params]
+  defp build_search_options({:size, size}, params) do
+    [{"size", to_integer(size)} | params]
+  end
 
   defp build_search_options({:sort, sort}, params) do
     {sort, _} = Enum.split(List.wrap(sort), 10)
 
-    sort =
-      sort
-      |> Enum.map(&normalize_sort/1)
-      |> Enum.join(",")
+    sort = Enum.map_join(sort, ", ", &normalize_sort/1)
 
     [{"sort", sort} | params]
   end
@@ -650,15 +651,13 @@ defmodule ExAws.CloudSearch do
     [{"page", to_integer(page)} | params]
   end
 
-  defp build_search_options(_options, params), do: params
+  defp build_search_options(_options, params) do
+    params
+  end
 
-  @spec build_named_json_option(
-          String.t(),
-          String.t() | {String.t(), nil | String.t() | map | keyword},
-          list
-        ) :: list
-  defp build_named_json_option(type, {name, nil}, params),
-    do: [{"#{type}.#{name}", "{}"} | params]
+  defp build_named_json_option(type, {name, nil}, params) do
+    [{"#{type}.#{name}", "{}"} | params]
+  end
 
   defp build_named_json_option(type, {name, value}, params) when is_binary(value) do
     [{"#{type}.#{name}", value} | params]
@@ -672,18 +671,31 @@ defmodule ExAws.CloudSearch do
     [{"#{type}.#{name}", {:json, Enum.into(value, %{})}} | params]
   end
 
-  defp build_named_json_option(type, name, params), do: [{"#{type}.#{name}", "{}"} | params]
+  defp build_named_json_option(type, name, params) do
+    [{"#{type}.#{name}", "{}"} | params]
+  end
 
-  defp to_integer(value) when is_number(value), do: round(value)
+  defp to_integer(value) when is_number(value) do
+    round(value)
+  end
 
-  defp to_integer(value) when is_binary(value), do: String.to_integer(value)
+  defp to_integer(value) when is_binary(value) do
+    String.to_integer(value)
+  end
 
-  defp to_integer(value), do: to_integer(to_string(value))
+  defp to_integer(value) do
+    to_integer(to_string(value))
+  end
 
-  defp normalize_sort("-" <> field), do: normalize_sort({field, :desc})
+  defp normalize_sort(field) when is_binary(field) do
+    if String.starts_with?(field, "-") do
+      normalize_sort({field, :desc})
+    else
+      normalize_sort({field, :asc})
+    end
+  end
 
-  defp normalize_sort(field) when is_binary(field), do: normalize_sort({field, :asc})
-
-  defp normalize_sort({field, direction}) when direction in ~w(asc desc),
-    do: "#{field} #{direction}"
+  defp normalize_sort({field, direction}) when direction in [:asc, :desc] do
+    "#{field} #{direction}"
+  end
 end

@@ -41,138 +41,141 @@ defmodule ExAws.Operation.CloudSearch do
           request_type: :config | :doc | :search
         }
 
-  @spec new(Enum.t()) :: t
   def new(opts) do
     struct(%__MODULE__{parser: & &1}, opts)
   end
+end
 
-  defimpl ExAws.Operation do
-    @type response_t :: %{} | ExAws.Request.error_t() | no_return
+defimpl ExAws.Operation, for: ExAws.Operation.CloudSearch do
+  @type response_t :: %{} | ExAws.Request.error_t() | no_return
 
-    alias ExAws.{Config, Operation.CloudSearch}
+  def perform(operation, config) do
+    operation = handle_before(operation, config)
+    {operation, config} = configure_host(operation, config)
+    {operation, data, headers} = prepare_request(operation, config)
 
-    @spec perform(CloudSearch.t(), Config.t()) :: response_t
-    def perform(operation, config) do
-      operation = handle_before(operation, config)
-      {operation, config} = configure_host(operation, config)
-      {operation, data, headers} = prepare_request(operation, config)
+    url = ExAws.Request.Url.build(operation, config)
 
-      url = ExAws.Request.Url.build(operation, config)
+    headers = [{"accept", "application/json"}, {"x-amz-content-sha256", ""} | headers]
 
-      headers = [{"accept", "application/json"}, {"x-amz-content-sha256", ""} | headers]
+    operation.http_method
+    |> ExAws.Request.request(url, data, headers, config, :cloudsearch)
+    |> parse_response(config)
+  end
 
-      operation.http_method
-      |> ExAws.Request.request(url, data, headers, config, :cloudsearch)
-      |> parse_response(config)
-    end
+  def stream!(_, _) do
+    raise(ArgumentError, "This operation does not support streaming!")
+  end
 
-    @spec stream!(CloudSearch.t(), Config.t()) :: no_return
-    def stream!(_, _), do: raise(ArgumentError, "This operation does not support streaming!")
+  defp handle_before(%{before_request: nil} = op, _) do
+    op
+  end
 
-    @spec handle_before(CloudSearch.t(), Config.t()) :: CloudSearch.t()
-    defp handle_before(%{before_request: nil} = op, _), do: op
+  defp handle_before(%{before_request: callback} = op, config) do
+    callback.(op, config)
+  end
 
-    defp handle_before(%{before_request: callback} = op, config), do: callback.(op, config)
+  defp configure_host(
+         %{api_version: version, request_type: :config} = operation,
+         %{region: region} = config
+       ) do
+    verify_version(version)
+    {operation, %{config | host: "cloudsearch.#{region}.amazonaws.com"}}
+  end
 
-    @spec configure_host(CloudSearch.t(), Config.t()) :: {CloudSearch.t(), Config.t()}
-    defp configure_host(
-           %{api_version: version, request_type: :config} = operation,
-           %{region: region} = config
-         ) do
-      verify_version(version)
-      {operation, %{config | host: "cloudsearch.#{region}.amazonaws.com"}}
-    end
+  defp configure_host(
+         %{api_version: version, path: path, request_type: type} = operation,
+         %{region: region, search_domain: domain} = config
+       ) do
+    verify_version(version)
 
-    defp configure_host(
-           %{api_version: version, path: path, request_type: type} = operation,
-           %{region: region, search_domain: domain} = config
-         ) do
-      verify_version(version)
+    {
+      %{operation | path: "/#{version}/#{path}", service: :cloudsearch},
+      %{config | host: "#{type}-#{domain}.#{region}.cloudsearch.amazonaws.com"}
+    }
+  end
 
-      {
-        %{operation | path: "/#{version}/#{path}", service: :cloudsearch},
-        %{config | host: "#{type}-#{domain}.#{region}.cloudsearch.amazonaws.com"}
-      }
-    end
+  defp prepare_request(%{request_type: :search, http_method: :post} = op, config) do
+    data =
+      op
+      |> parse_search_query(config)
+      |> URI.encode_query()
 
-    @spec prepare_request(CloudSearch.t(), Config.t()) ::
-            {CloudSearch.t(), map | String.t(), list({String.t(), String.t()})}
+    headers = [{"content-type", "application/x-www-form-urlencoded"} | op.headers]
+    {Map.put(op, :params, %{}), data, headers}
+  end
 
-    defp prepare_request(%{request_type: :search, http_method: :post} = op, config) do
-      data =
-        op
-        |> parse_search_query(config)
-        |> URI.encode_query()
+  defp prepare_request(%{request_type: :search} = op, config) do
+    {Map.put(op, :params, parse_search_query(op, config)), %{}, op.headers}
+  end
 
-      headers = [{"content-type", "application/x-www-form-urlencoded"} | op.headers]
-      {Map.put(op, :params, %{}), data, headers}
-    end
+  defp prepare_request(%{data: data, headers: headers, request_type: :doc} = op, _config) do
+    {op, data, [{"content-type", "application/json"} | headers]}
+  end
 
-    defp prepare_request(%{request_type: :search} = op, config) do
-      {Map.put(op, :params, parse_search_query(op, config)), %{}, op.headers}
-    end
+  defp prepare_request(%{request_type: :config, http_method: :post} = op, _config) do
+    data = URI.encode_query(op.params)
+    headers = [{"content-type", "application/x-www-form-urlencoded"} | op.headers]
+    {Map.put(op, :params, %{}), data, headers}
+  end
 
-    defp prepare_request(%{data: data, headers: headers, request_type: :doc} = op, _config) do
-      {op, data, [{"content-type", "application/json"} | headers]}
-    end
+  defp prepare_request(%{data: data, headers: headers} = op, _config) do
+    {op, data, headers}
+  end
 
-    defp prepare_request(%{request_type: :config, http_method: :post} = op, _config) do
-      data = URI.encode_query(op.params)
-      headers = [{"content-type", "application/x-www-form-urlencoded"} | op.headers]
-      {Map.put(op, :params, %{}), data, headers}
-    end
+  defp parse_response({:error, _} = result, _) do
+    result
+  end
 
-    defp prepare_request(%{data: data, headers: headers} = op, _config), do: {op, data, headers}
+  defp parse_response({:ok, %{body: ""}}, _) do
+    {:ok, %{}}
+  end
 
-    @spec parse_response({:ok, %{body: String.t()}} | {:error, any}, Config.t()) ::
-            {:ok, map} | {:error, any} | no_return
-    defp parse_response({:error, _} = result, _), do: result
+  defp parse_response({:ok, %{body: body}}, config) do
+    {:ok, config[:json_codec].decode!(body)}
+  end
 
-    defp parse_response({:ok, %{body: ""}}, _), do: {:ok, %{}}
-
-    defp parse_response({:ok, %{body: body}}, config) do
-      {:ok, config[:json_codec].decode!(body)}
-    end
-
-    @spec parse_search_query(map, Config.t()) :: map
-    defp parse_search_query(%{params: %{} = params}, config) do
-      {query, parser} =
-        params
-        |> Map.get_lazy("q", fn -> Map.fetch!(params, :q) end)
-        |> ExAws.CloudSearch.QueryParser.parse()
-
-      {fq, _} =
-        params
-        |> Map.get("fq", Map.get(params, :fq))
-        |> ExAws.CloudSearch.QueryParser.parse()
-
+  defp parse_search_query(%{params: %{} = params}, config) do
+    {query, parser} =
       params
-      |> put_param(:"q.parser", parser)
-      |> put_param(:fq, fq)
-      |> put_param(:q, query)
-      |> Enum.reduce(%{}, &convert_json_params(config, &1, &2))
-    end
+      |> Map.get_lazy("q", fn -> Map.fetch!(params, :q) end)
+      |> ExAws.CloudSearch.QueryParser.parse()
 
-    @spec convert_json_params(Config.t(), {String.t() | atom, String.t() | {:json, map}}, map) ::
-            map
-    defp convert_json_params(config, {key, {:json, value}}, params) do
-      Map.put(params, key, config[:json_codec].encode!(value))
-    end
-
-    defp convert_json_params(_config, {key, value}, params), do: Map.put(params, key, value)
-
-    @spec put_param(map, atom, any) :: map
-    defp put_param(params, _, nil), do: params
-
-    defp put_param(params, name, value) when is_atom(name) do
+    {fq, _} =
       params
-      |> Map.put(to_string(name), value)
-      |> Map.delete(name)
-    end
+      |> Map.get("fq", Map.get(params, :fq))
+      |> ExAws.CloudSearch.QueryParser.parse()
 
-    defp verify_version("2013-01-01"), do: nil
+    params
+    |> put_param(:"q.parser", parser)
+    |> put_param(:fq, fq)
+    |> put_param(:q, query)
+    |> Enum.reduce(%{}, &convert_json_params(config, &1, &2))
+  end
 
-    defp verify_version(version),
-      do: raise(ExAws.Error, "Unsupported CloudSearch API version #{version}")
+  defp convert_json_params(config, {key, {:json, value}}, params) do
+    Map.put(params, key, config[:json_codec].encode!(value))
+  end
+
+  defp convert_json_params(_config, {key, value}, params) do
+    Map.put(params, key, value)
+  end
+
+  defp put_param(params, _, nil) do
+    params
+  end
+
+  defp put_param(params, name, value) when is_atom(name) do
+    params
+    |> Map.put(to_string(name), value)
+    |> Map.delete(name)
+  end
+
+  defp verify_version("2013-01-01") do
+    nil
+  end
+
+  defp verify_version(version) do
+    raise(ExAws.Error, "Unsupported CloudSearch API version #{version}")
   end
 end
