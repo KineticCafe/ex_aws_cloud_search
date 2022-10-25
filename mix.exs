@@ -51,9 +51,10 @@ defmodule ExAws.CloudSearch.Mixfile do
   defp deps() do
     [
       ex_aws(),
-      {:csquery, "~> 1.0", optional: true},
       {:credo, "~> 1.0", only: :dev, runtime: false},
+      {:csquery, "~> 1.0", optional: true},
       {:dialyxir, "~> 1.0", only: :dev, runtime: false},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:hackney, ">= 0.0.0", only: :test}
     ]
   end
@@ -61,7 +62,7 @@ defmodule ExAws.CloudSearch.Mixfile do
   defp ex_aws() do
     case System.get_env("EX_AWS_PATH") do
       nil -> {:ex_aws, "~> 2.4"}
-      path -> {:ex_aws, path: "../ex_aws"}
+      path -> {:ex_aws, path: path}
     end
   end
 end
